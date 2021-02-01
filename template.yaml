@@ -1,0 +1,301 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  todo-list-aws
+
+  Sample SAM Template for todo-list-aws
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Parameters:
+
+    DATABASE_USERNAME:
+          Description: 'Database username'
+          Type: 'String'
+          Default: todoTable
+    ENVIRONMENT:
+          Description: 'Environment'
+          Type: 'String'
+          Default: Develop   
+
+Globals:
+  Function:
+    Timeout: 3
+    Environment: 
+      Variables:
+        DYNAMODB_TABLE: !Ref DATABASE_USERNAME
+        STAGE: !Ref ENVIRONMENT
+ 
+          
+Resources: 
+  ProcessDynamoDBStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: http://127.0.0.1:8000
+      Runtime: python3.8
+      Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+          
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDBTable.StreamArn
+            BatchSize: 100
+            StartingPosition: TRIM_HORIZON
+  TodosDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        TableName: !Ref DATABASEUSERNAME
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Events:
+        HelloWorld:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /hello
+            Method: get
+  create:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: create.create
+      Runtime: python3.8
+      Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources:
+          !Sub "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        create:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: post
+        
+  list:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: list.list
+      Runtime: python3.8
+      Policies: 
+        Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources: !Sub "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        list:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: get
+  getTodo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: get.get
+      Runtime: python3.8
+      Policies: 
+        Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources: "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        get:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: get
+  delete:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: delete.delete
+      Runtime: python3.8
+      Policies: 
+        Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources: "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        delete:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: delete
+  updateTodo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: update.update
+      Runtime: python3.8
+      Policies: 
+        Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources: "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        update:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: put
+  Translator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: todos/
+      Handler: translator.translator
+      Runtime: python3.8
+      Policies: 
+        Policies: 
+        Effect: 'Allow'
+        Action: 
+          - "Comprehend:BatchDetectDominantLanguage"
+          - "Comprehend:DetectDominantLanguage"
+          - "Cloudwatch:GetMetricStstistics"
+          - "Cloudwatch:ListMetrics"
+          - "translate:TranslateText"
+        Resources: "*"
+        Effect: 'Allow'
+        Action: 
+          - "dynamodb:Query"
+          - "dynamodb:Scan"
+          - "dynamodb:GetItem"
+          - "dynamodb:PutItem"
+          - "dynamodb:UpdateItem"
+          - "dynamodb:DeleteItem"
+        Resources:
+          !Sub "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+      Events:
+        translator:
+          Type: Api
+          Properties:
+            Path: /todos/{id}/{language}
+            Method: get
+ 
+ 
+  
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn
+  
+  TodosDynamoDbTableApi:
+    Description: "API Gateway endpoint URL for Prod stage for DynamoDB Table function"
+    Value: "http://localhost:8000"
+  TodosDynamoDbTable:
+    Description: "DynamoDBTable Lambda Function ARN"
+    Value: !GetAtt TodosDynamoDbTable.Arn
+  TodosDynamoDbTableIamRole:
+    Description: "Implicit IAM Role"
+    Value: !GetAtt TodosDynamoDbTable.Arn
